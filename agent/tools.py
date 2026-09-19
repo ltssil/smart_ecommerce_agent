@@ -76,3 +76,7 @@ def query_order(order_no: str) -> dict:
 
     finally:
         connection.close()
+
+ALL_TOOLS = [
+    query_order,
+]

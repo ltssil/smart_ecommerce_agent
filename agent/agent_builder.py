@@ -18,6 +18,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
+from agent.tools import ALL_TOOLS
+
 load_dotenv()
 
 # 项目根目录（本文件在 agent/ 下，所以往上一级）
@@ -62,7 +64,7 @@ async def construct_agent():
     # s4-组装
     _agent = create_agent(
         model=llm,
-        tools=[],                    # 这一讲还没有工具，先留空
+        tools=ALL_TOOLS,
         system_prompt=system_prompt,
         checkpointer=checkpointer
     )
