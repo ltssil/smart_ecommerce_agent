@@ -14,10 +14,11 @@ tools.py —— Agent 工具
     MySQL -> smart_ecommerce_agent.orders
 """
 
+import os
+from langchain_huggingface import HuggingFaceEmbeddings
+from pymilvus import MilvusClient
 from langchain.tools import tool
-
 from agent.db import get_connection
-
 
 @tool
 def query_order(order_no: str) -> dict:
@@ -176,7 +177,56 @@ def query_track(order_no: str) -> dict:
     finally:
         connection.close()
 
+# ============================================================
+# 全局单例：BGE-M3 嵌入模型 / Milvus 客户端
+# ============================================================
+
+_embeddings = None
+_milvus_client = None
+
+def get_embeddings() -> HuggingFaceEmbeddings:
+    """获取 BGE-M3 嵌入模型，全局只加载一次。"""
+    global _embeddings
+
+    if _embeddings is None:
+        device = os.getenv("MODEL_DEVICE", "").strip()
+
+        model_kwargs = {
+            "device": device
+        } if device else {}
+
+        _embeddings = HuggingFaceEmbeddings(
+            model=os.getenv("MODEL_PATH"),
+            model_kwargs=model_kwargs,
+            encode_kwargs={
+                "normalize_embeddings": True
+            },
+        )
+
+    return _embeddings
+
+
+def get_milvus_client() -> MilvusClient:
+    """获取 Milvus 客户端，全局只创建一次。"""
+    global _milvus_client
+
+    if _milvus_client is None:
+        _milvus_client = MilvusClient(
+            uri=os.getenv(
+                "MILVUS_URI",
+                "http://localhost:19530"
+            ),
+            token=os.getenv("MILVUS_TOKEN", ""),
+            db_name=os.getenv(
+                "MILVUS_DATABASE",
+                "default"
+            ),
+        )
+
+    return _milvus_client
+
 ALL_TOOLS = [
     query_order,
-    query_track
+    query_track,
+
 ]
