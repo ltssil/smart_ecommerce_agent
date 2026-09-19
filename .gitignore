@@ -1,4 +1,5 @@
 /.env
-/orders.sql
-/agent_test.sql
-/tracks.sql
+/tables/orders.sql
+/tables/agent_test.sql
+/tables/tracks.sql
+/tables/policies.sql
