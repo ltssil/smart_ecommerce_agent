@@ -5,7 +5,7 @@
       <!-- 聊天标题 -->
       <header class="chat-header">
         <div>
-          <h1>电商售后智能客服</h1>
+          <h1>🛍️ 电商售后智能客服</h1>
           <p>为您提供订单、退换货、物流及售后服务</p>
         </div>
 
@@ -82,7 +82,7 @@
       <div class="side-panel order-panel">
         <div class="panel-header">
           <div>
-            <h2>我的订单</h2>
+            <h2>📦 我的订单</h2>
             <span>{{ orders.length }} 笔订单</span>
           </div>
 
@@ -150,7 +150,7 @@
             <div class="empty-icon">📦</div>
             <p>暂无订单数据</p>
             <span>
-              当前系统尚未接入真实订单数据
+              当前暂无可展示的订单
             </span>
           </div>
         </div>
@@ -160,7 +160,7 @@
       <div class="side-panel ticket-panel">
         <div class="panel-header">
           <div>
-            <h2>售后工单</h2>
+            <h2>📝 售后工单</h2>
             <span>{{ tickets.length }} 个工单</span>
           </div>
 
@@ -230,7 +230,6 @@
     </section>
   </div>
 </template>
-
 <script setup>
 import { nextTick, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
