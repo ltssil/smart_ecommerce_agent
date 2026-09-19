@@ -56,11 +56,9 @@ def query_all_policies() -> list[dict]:
         connection.close()
 
 def build_policy_text(policy: dict) -> str:
-    """把一条售后政策拼成适合 Embedding 的自然语言文本。"""
-
     return (
         f"售后场景：{policy['scenario']}。"
-        f"售后规则：{policy['rule']}。"
+        f"售后规则：{policy['rule']}"
         f"规则依据：{policy['basis']}。"
     )
 
