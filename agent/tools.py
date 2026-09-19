@@ -225,8 +225,81 @@ def get_milvus_client() -> MilvusClient:
 
     return _milvus_client
 
+@tool
+def search_policy(question: str) -> list[dict]:
+    """
+    根据用户的售后问题，检索最相关的售后政策。
+
+    适用于：
+    - 退货
+    - 换货
+    - 退货期限
+    - 运费承担
+    - 商品质量问题
+    - 二次销售
+    - 待发货取消等售后政策问题
+
+    这里只负责检索政策，不直接判断用户是否一定可以退货或换货。
+    最终处理结论需要结合订单信息和具体政策进行判断。
+    """
+
+    question = question.strip()
+
+    if not question:
+        return [
+            {
+                "found": False,
+                "message": "售后问题不能为空。"
+            }
+        ]
+
+    collection_name = os.getenv(
+        "MILVUS_COLLECTION",
+        "after_sales_policies"
+    )
+
+    embeddings = get_embeddings()
+    client = get_milvus_client()
+
+    # Milvus 服务重启后 Collection 可能处于 released 状态。
+    # 每次检索前执行 load，保证 Collection 可以正常搜索。
+    client.load_collection(collection_name)
+
+    query_vector = embeddings.embed_query(question)
+
+    results = client.search(
+        collection_name=collection_name,
+        data=[query_vector],
+        anns_field="vector",
+        output_fields=["text"],
+        limit=3,
+    )
+
+    if not results or not results[0]:
+        return [
+            {
+                "found": False,
+                "message": "暂未检索到相关售后政策。"
+            }
+        ]
+
+    policies = []
+
+    for hit in results[0]:
+        text = hit["entity"]["text"]
+
+        policies.append(
+            {
+                "found": True,
+                "policy": text,
+                "distance": float(hit["distance"]),
+            }
+        )
+
+    return policies
+
 ALL_TOOLS = [
     query_order,
     query_track,
-
+    search_policy
 ]
