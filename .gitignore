@@ -1,6 +1,1 @@
 /.env
-/tables/orders.sql
-/tables/agent_test.sql
-/tables/tracks.sql
-/tables/policies.sql
-/tables/tickets.sql
