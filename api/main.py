@@ -51,6 +51,20 @@ class HealthResponse(BaseModel):
     status: str  # 服务状态
     service: str  # 服务名称
 
+class TicketItem(BaseModel):
+    id: int
+    ticket_no: str
+    order_no: str
+    issue: str
+    status: str
+    created_at: str
+
+class TicketListResponse(BaseModel):
+    success: bool
+    tickets: list[TicketItem]
+    count: int
+    message: str = ""
+
 class OrderItem(BaseModel):
     """订单信息"""
     order_no: str  # 订单编号
@@ -174,13 +188,52 @@ async def order_list_endpoint():
 
 @app.get("/ticket/list", response_model=TicketListResponse)
 async def ticket_list_endpoint():
-    """
-    当前阶段先占位。
-    后续接入tickets表后，再返回真实售后工单。
-    """
-    return TicketListResponse(
-        success=True,
-        tickets=[],
-        count=0,
-        message="售后工单将在后续阶段接入。",
-    )
+    """查询售后工单列表。"""
+
+    connection = get_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    ticket_no,
+                    order_no,
+                    issue,
+                    status,
+                    created_at
+                FROM tickets
+                ORDER BY id DESC
+                """
+            )
+
+            rows = cursor.fetchall()
+
+        tickets = []
+
+        for row in rows:
+            item = dict(row)
+
+            if item.get("created_at"):
+                item["created_at"] = str(item["created_at"])
+
+            tickets.append(item)
+
+        return TicketListResponse(
+            success=True,
+            tickets=tickets,
+            count=len(tickets),
+            message="售后工单查询成功。",
+        )
+
+    except Exception as error:
+        return TicketListResponse(
+            success=False,
+            tickets=[],
+            count=0,
+            message=f"查询售后工单失败：{type(error).__name__}: {error}",
+        )
+
+    finally:
+        connection.close()
