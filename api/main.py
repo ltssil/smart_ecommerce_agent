@@ -24,7 +24,7 @@ from starlette.responses import StreamingResponse  # 导入流式响应
 
 from agent.stream_agent import assistant_query  # 导入Agent流式处理函数
 from agent.db import get_connection  # 导入数据库连接
-from agent.redis_service import suggest_faq # 导入redis联想函数
+from agent.redis_service import get_faqs, suggest_faq # 导入redis联想函数
 
 load_dotenv()  # 加载.env文件
 
@@ -56,6 +56,11 @@ class FaqResponse(BaseModel):
     success: bool
     query: str
     suggestions: list[str]
+
+class FaqHotResponse(BaseModel):
+    success: bool
+    suggestions: list[str]
+    count: int
 
 class OrderItem(BaseModel):
     """订单信息"""
@@ -250,4 +255,21 @@ async def faq_suggest_endpoint(
         success=True,
         query=query,
         suggestions=suggestions,
+    )
+
+@app.get("/faq/hot", response_model=FaqHotResponse)
+async def faq_hot_endpoint(limit: int = 5):
+    # 限制最多返回 10 个问题
+    limit = max(1, min(limit, 10))
+
+    # 从 Redis 获取全部高频问题
+    faqs = get_faqs()
+
+    # 只取前面的几个作为首页快捷问题
+    suggestions = faqs[:limit]
+
+    return FaqHotResponse(
+        success=True,
+        suggestions=suggestions,
+        count=len(suggestions)
     )

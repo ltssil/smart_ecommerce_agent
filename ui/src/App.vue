@@ -49,6 +49,26 @@
 
       <!-- 输入区域 -->
       <div class="input-area">
+        <!-- 首页常见问题 -->
+        <div
+          v-if="showHotFaqs && hotFaqs.length > 0"
+          class="hot-faqs"
+        >
+          <div class="hot-faq-title">
+            💡 常见问题
+          </div>
+
+          <div class="hot-faq-list">
+            <button
+              v-for="question in hotFaqs"
+              :key="question"
+              class="hot-faq-button"
+              @click="selectHotFaq(question)"
+            >
+              {{ question }}
+            </button>
+          </div>
+        </div>
         <!-- 售后问题输入框 -->
         <el-input
           v-model="inputMessage"
@@ -333,8 +353,27 @@ const loadTickets = async () => {
   }
 }
 
+// 加载首页常见问题
+const loadHotFaqs = async () => {
+  try {
+    const result = await faqAPI.hot(4)
+
+    if (result.success) {
+      hotFaqs.value = result.suggestions || []
+    }
+  } catch (error) {
+    hotFaqs.value = []
+  }
+}
+
 // Redis 售后问题联想
 const faqSuggestions = ref([])
+
+// 首页快捷问题
+const hotFaqs = ref([])
+
+// 是否显示首页快捷问题
+const showHotFaqs = ref(true)
 
 // 是否显示联想列表
 const showFaqSuggestions = ref(false)
@@ -350,6 +389,11 @@ const handleInput = () => {
   // 清除上一次延迟请求
   if (faqTimer) {
     clearTimeout(faqTimer)
+  }
+
+    // 用户开始输入后隐藏首页快捷问题
+  if (inputMessage.value.trim()) {
+    showHotFaqs.value = false
   }
 
   // 获取当前输入内容
@@ -405,6 +449,19 @@ const selectFaqSuggestion = (suggestion) => {
   inputMessage.value = suggestion
 
   // 隐藏联想框
+  faqSuggestions.value = []
+  showFaqSuggestions.value = false
+}
+
+// 点击首页快捷问题
+const selectHotFaq = (question) => {
+  // 将问题填入输入框
+  inputMessage.value = question
+
+  // 隐藏首页快捷问题
+  showHotFaqs.value = false
+
+  // 清空正在显示的联想结果
   faqSuggestions.value = []
   showFaqSuggestions.value = false
 }
@@ -527,6 +584,7 @@ const getTicketStatusType = (status) => {
 onMounted(async () => {
   await loadOrders()
   await loadTickets()
+  await loadHotFaqs()
   await scrollToBottom()
 })
 </script>
@@ -904,6 +962,42 @@ onMounted(async () => {
 .empty-panel span {
   font-size: 12px;
   color: #a8abb2;
+}
+
+/* ==================== 首页常见问题 ==================== */
+
+.hot-faqs {
+  margin-bottom: 10px;
+}
+
+.hot-faq-title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.hot-faq-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hot-faq-button {
+  padding: 7px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #606266;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hot-faq-button:hover {
+  border-color: #409eff;
+  color: #409eff;
+  background: #f0f7ff;
 }
 
 /* ==================== 滚动条 ==================== */

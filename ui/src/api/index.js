@@ -29,6 +29,16 @@ export const faqAPI = {
     })
 
     return response.data
+  },
+
+  async hot(limit = 5) {
+    const response = await api.get('/faq/hot', {
+      params: {
+        limit
+      }
+    })
+
+    return response.data
   }
 }
 
