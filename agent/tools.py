@@ -20,6 +20,25 @@ from pymilvus import MilvusClient
 from langchain.tools import tool
 from agent.db import get_connection
 
+from pydantic import BaseModel, Field
+
+class CreateTicketInput(BaseModel):
+    """创建售后工单的输入参数"""
+
+    order_no: str = Field(
+        ...,
+        description="要创建售后工单的订单号，例如 ORD202609180001",
+        min_length=1,
+        max_length=64,
+    )
+
+    issue: str = Field(
+        ...,
+        description="用户需要人工处理的售后问题，例如退货运费争议",
+        min_length=1,
+        max_length=500,
+    )
+
 @tool
 def query_order(order_no: str) -> dict:
     """
@@ -298,8 +317,160 @@ def search_policy(question: str) -> list[dict]:
 
     return policies
 
+@tool(
+    args_schema=CreateTicketInput,
+    description="创建售后工单。当用户的问题需要人工处理或存在争议时使用。必须提供真实存在的订单号和具体问题描述。"
+)
+def create_ticket(order_no: str, issue: str) -> dict:
+    """
+    创建售后工单。
+
+    使用场景：
+    1. 用户与售后政策产生争议。
+    2. 用户明确要求转人工处理。
+    3. 当前问题无法仅通过订单、物流和政策直接解决。
+
+    创建工单前会先检查订单是否存在。
+    不存在的订单不能创建工单。
+    """
+
+    order_no = order_no.strip()
+    issue = issue.strip()
+
+    # 参数再次校验
+    if not order_no:
+        return {
+            "success": False,
+            "message": "订单号不能为空。",
+        }
+
+    if not issue:
+        return {
+            "success": False,
+            "message": "售后问题不能为空。",
+        }
+
+    if len(order_no) > 64:
+        return {
+            "success": False,
+            "message": "订单号长度不能超过64个字符。",
+        }
+
+    if len(issue) > 500:
+        return {
+            "success": False,
+            "message": "售后问题描述长度不能超过500个字符。",
+        }
+
+    connection = get_connection()
+
+    try:
+        with connection.cursor() as cursor:
+
+            # 1. 先检查订单是否真实存在
+            cursor.execute(
+                """
+                SELECT order_no
+                FROM orders
+                WHERE order_no = %s
+                LIMIT 1
+                """,
+                (order_no,),
+            )
+
+            order = cursor.fetchone()
+
+            if not order:
+                return {
+                    "success": False,
+                    "message": f"订单 {order_no} 不存在，无法创建售后工单。",
+                    "order_no": order_no,
+                }
+
+            # 2. 先生成一个临时工单号
+            #    最终正式工单号会根据 tickets.id 生成
+            import uuid
+
+            temp_ticket_no = uuid.uuid4().hex
+
+            cursor.execute(
+                """
+                INSERT INTO tickets
+                    (ticket_no, order_no, issue, status)
+                VALUES
+                    (%s, %s, %s, %s)
+                """,
+                (
+                    temp_ticket_no,
+                    order_no,
+                    issue,
+                    "待处理",
+                ),
+            )
+
+            # 3. 获取刚刚插入的自增 id
+            ticket_id = cursor.lastrowid
+
+            # 4. 使用 id 生成正式工单号
+            ticket_no = f"TK-{ticket_id:06d}"
+
+            cursor.execute(
+                """
+                UPDATE tickets
+                SET ticket_no = %s
+                WHERE id = %s
+                """,
+                (
+                    ticket_no,
+                    ticket_id,
+                ),
+            )
+
+            # 5. 提交事务
+            connection.commit()
+
+            # 6. 查询刚创建的工单
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    ticket_no,
+                    order_no,
+                    issue,
+                    status,
+                    created_at
+                FROM tickets
+                WHERE id = %s
+                """,
+                (ticket_id,),
+            )
+
+            ticket = cursor.fetchone()
+
+            if ticket:
+                ticket["created_at"] = str(ticket["created_at"])
+
+            return {
+                "success": True,
+                "message": "售后工单创建成功。",
+                "ticket": ticket,
+            }
+
+    except Exception as error:
+        connection.rollback()
+
+        return {
+            "success": False,
+            "message": "创建售后工单失败。",
+            "error": f"{type(error).__name__}: {error}",
+        }
+
+    finally:
+        connection.close()
+
 ALL_TOOLS = [
     query_order,
     query_track,
-    search_policy
+    search_policy,
+    create_ticket,
 ]
