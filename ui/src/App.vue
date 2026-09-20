@@ -67,7 +67,16 @@
           class="faq-suggestions"
         >
           <div class="faq-title">
-            💡 您可能想问
+            <span>💡 您可能想问</span>
+
+            <el-button
+              text
+              size="small"
+              class="faq-close-button"
+              @click="closeFaqSuggestions"
+            >
+              ×
+            </el-button>
           </div>
 
           <div
@@ -400,6 +409,23 @@ const selectFaqSuggestion = (suggestion) => {
   showFaqSuggestions.value = false
 }
 
+// 手动关闭当前联想框
+const closeFaqSuggestions = () => {
+  // 让已经发出的旧请求失效
+  faqRequestId++
+
+  // 清除尚未执行的延迟请求
+  if (faqTimer) {
+    clearTimeout(faqTimer)
+  }
+
+  // 清空联想结果
+  faqSuggestions.value = []
+
+  // 隐藏联想框
+  showFaqSuggestions.value = false
+}
+
 // 发送消息
 const sendMessage = async () => {
   const query = inputMessage.value.trim()
@@ -652,14 +678,19 @@ onMounted(async () => {
   color: #a8abb2;
 }
 
-/* Redis 高频问题联想 */
 .faq-suggestions {
   position: absolute;
   left: 16px;
   right: 16px;
-  bottom: 82px;
+
+  /* 整个联想框放到输入区域上方 */
+  bottom: calc(100% + 8px);
+
   z-index: 100;
+  max-height: 280px;
+  overflow-y: auto;
   padding: 8px 0;
+
   background: #ffffff;
   border: 1px solid #dcdfe6;
   border-radius: 8px;
@@ -668,10 +699,29 @@ onMounted(async () => {
 
 /* 联想标题 */
 .faq-title {
-  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  height: 36px;
+  padding: 0 8px 0 14px;
+
   font-size: 12px;
   color: #909399;
+
   border-bottom: 1px solid #f0f0f0;
+}
+
+/* 关闭按钮 */
+.faq-close-button {
+  padding: 4px 8px;
+  font-size: 16px;
+  color: #909399;
+}
+
+/* 鼠标悬停关闭按钮 */
+.faq-close-button:hover {
+  color: #409eff;
 }
 
 /* 联想问题 */
