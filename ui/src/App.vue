@@ -49,6 +49,7 @@
 
       <!-- 输入区域 -->
       <div class="input-area">
+        <!-- 售后问题输入框 -->
         <el-input
           v-model="inputMessage"
           type="textarea"
@@ -56,8 +57,28 @@
           resize="none"
           placeholder="请输入您的售后问题，例如：我的订单能退吗？"
           :disabled="sending"
+          @input="handleInput"
           @keydown.enter.exact.prevent="sendMessage"
         />
+
+        <!-- Redis 高频问题联想 -->
+        <div
+          v-if="showFaqSuggestions"
+          class="faq-suggestions"
+        >
+          <div class="faq-title">
+            💡 您可能想问
+          </div>
+
+          <div
+            v-for="suggestion in faqSuggestions"
+            :key="suggestion"
+            class="faq-suggestion-item"
+            @click="selectFaqSuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </div>
+        </div>
 
         <div class="input-footer">
           <span class="input-tip">
@@ -236,7 +257,8 @@ import { ElMessage } from 'element-plus'
 import {
   chatAPI,
   orderAPI,
-  ticketAPI
+  ticketAPI,
+  faqAPI
 } from './api/index.js'
 
 // 当前会话 ID
@@ -300,6 +322,82 @@ const loadTickets = async () => {
   } catch (error) {
     ElMessage.error('售后工单加载失败')
   }
+}
+
+// Redis 售后问题联想
+const faqSuggestions = ref([])
+
+// 是否显示联想列表
+const showFaqSuggestions = ref(false)
+
+// 联想请求定时器
+let faqTimer = null
+
+// 联想请求编号，用于避免旧请求覆盖新结果
+let faqRequestId = 0
+
+// 处理输入框内容变化
+const handleInput = () => {
+  // 清除上一次延迟请求
+  if (faqTimer) {
+    clearTimeout(faqTimer)
+  }
+
+  // 获取当前输入内容
+  const query = inputMessage.value.trim()
+
+  // 少于两个字符时不显示联想
+  if (query.length < 2) {
+    faqSuggestions.value = []
+    showFaqSuggestions.value = false
+    return
+  }
+
+  // 延迟 200ms 再查询，避免连续输入时频繁请求
+  faqTimer = setTimeout(async () => {
+    // 当前请求编号加一
+    const requestId = ++faqRequestId
+
+    try {
+      // 调用 Redis 联想接口
+      const result = await faqAPI.suggest(query, 5)
+
+      // 如果已经有更新的请求，则丢弃当前结果
+      if (requestId !== faqRequestId) {
+        return
+      }
+
+      // 保存联想结果
+      faqSuggestions.value = result.success
+        ? result.suggestions || []
+        : []
+
+      // 有结果才显示联想框
+      showFaqSuggestions.value =
+        faqSuggestions.value.length > 0
+    } catch (error) {
+      // 请求失败时隐藏联想框
+      faqSuggestions.value = []
+      showFaqSuggestions.value = false
+    }
+  }, 200)
+}
+
+const selectFaqSuggestion = (suggestion) => {
+  // 当前输入发生变化，使之前的联想请求失效
+  faqRequestId++
+
+  // 清除延迟请求
+  if (faqTimer) {
+    clearTimeout(faqTimer)
+  }
+
+  // 将候选问题填入输入框
+  inputMessage.value = suggestion
+
+  // 隐藏联想框
+  faqSuggestions.value = []
+  showFaqSuggestions.value = false
 }
 
 // 发送消息
@@ -535,6 +633,7 @@ onMounted(async () => {
 /* 输入区域 */
 
 .input-area {
+  position: relative;
   flex-shrink: 0;
   padding: 16px;
   border-top: 1px solid #ebeef5;
@@ -551,6 +650,43 @@ onMounted(async () => {
 .input-tip {
   font-size: 12px;
   color: #a8abb2;
+}
+
+/* Redis 高频问题联想 */
+.faq-suggestions {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 82px;
+  z-index: 100;
+  padding: 8px 0;
+  background: #ffffff;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+/* 联想标题 */
+.faq-title {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #909399;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* 联想问题 */
+.faq-suggestion-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #303133;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+/* 鼠标悬停 */
+.faq-suggestion-item:hover {
+  background: #f5f7fa;
+  color: #409eff;
 }
 
 /* ==================== 右侧区域 ==================== */

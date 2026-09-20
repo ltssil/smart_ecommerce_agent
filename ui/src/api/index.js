@@ -19,6 +19,19 @@ export const ticketAPI = {
   }
 }
 
+export const faqAPI = {
+  async suggest(query, limit = 5) {
+    const response = await api.get('/faq/suggest', {
+      params: {
+        query,
+        limit
+      }
+    })
+
+    return response.data
+  }
+}
+
 export const healthAPI = {
   async check() {
     const response = await api.get('/health')
