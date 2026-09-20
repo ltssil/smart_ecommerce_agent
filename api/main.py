@@ -24,6 +24,7 @@ from starlette.responses import StreamingResponse  # 导入流式响应
 
 from agent.stream_agent import assistant_query  # 导入Agent流式处理函数
 from agent.db import get_connection  # 导入数据库连接
+from agent.redis_service import suggest_faq # 导入redis联想函数
 
 load_dotenv()  # 加载.env文件
 
@@ -51,19 +52,10 @@ class HealthResponse(BaseModel):
     status: str  # 服务状态
     service: str  # 服务名称
 
-class TicketItem(BaseModel):
-    id: int
-    ticket_no: str
-    order_no: str
-    issue: str
-    status: str
-    created_at: str
-
-class TicketListResponse(BaseModel):
+class FaqResponse(BaseModel):
     success: bool
-    tickets: list[TicketItem]
-    count: int
-    message: str = ""
+    query: str
+    suggestions: list[str]
 
 class OrderItem(BaseModel):
     """订单信息"""
@@ -88,7 +80,6 @@ class TicketItem(BaseModel):
     issue: str  # 售后问题
     status: str  # 工单状态
     created_at: Optional[str] = None  # 创建时间
-
 
 class TicketListResponse(BaseModel):
     """GET /ticket/list 响应体"""
@@ -237,3 +228,26 @@ async def ticket_list_endpoint():
 
     finally:
         connection.close()
+
+@app.get("/faq/suggest", response_model=FaqResponse)
+async def faq_suggest_endpoint(
+    query: str = "",
+    limit: int = 5,
+):
+    """根据用户输入，从 Redis 返回售后高频问题联想。"""
+
+    query = query.strip()
+
+    # 限制联想数量，避免前端一次显示太多内容
+    limit = max(1, min(limit, 10))
+
+    suggestions = suggest_faq(
+        keyword=query,
+        limit=limit,
+    )
+
+    return FaqResponse(
+        success=True,
+        query=query,
+        suggestions=suggestions,
+    )
