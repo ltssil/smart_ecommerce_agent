@@ -391,11 +391,6 @@ const handleInput = () => {
     clearTimeout(faqTimer)
   }
 
-    // 用户开始输入后隐藏首页快捷问题
-  if (inputMessage.value.trim()) {
-    showHotFaqs.value = false
-  }
-
   // 获取当前输入内容
   const query = inputMessage.value.trim()
 
@@ -457,9 +452,6 @@ const selectFaqSuggestion = (suggestion) => {
 const selectHotFaq = (question) => {
   // 将问题填入输入框
   inputMessage.value = question
-
-  // 隐藏首页快捷问题
-  showHotFaqs.value = false
 
   // 清空正在显示的联想结果
   faqSuggestions.value = []
