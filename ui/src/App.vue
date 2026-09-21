@@ -151,45 +151,72 @@
             v-if="orders.length > 0"
             class="data-list"
           >
+<!--            订单卡片 -->
             <div
-              v-for="order in orders"
-              :key="order.order_no"
-              class="order-item"
-            >
-              <div class="item-top">
-                <span class="order-no">
-                  {{ order.order_no }}
-                </span>
+  v-for="order in orders"
+  :key="order.order_no"
+  class="order-item"
+>
+  <!-- 订单头部 -->
+  <div class="order-card-header">
+    <div>
+      <div class="order-no">
+        {{ order.order_no }}
+      </div>
 
-                <el-tag
-                  size="small"
-                  :type="getOrderStatusType(order.status)"
-                >
-                  {{ order.status }}
-                </el-tag>
-              </div>
+      <div class="product-name">
+        {{ order.product_name }}
+      </div>
+    </div>
 
-              <div class="product-name">
-                {{ order.product_name }}
-              </div>
+    <el-tag
+      size="small"
+      effect="light"
+      :type="getOrderStatusType(order.status)"
+    >
+      {{ order.status }}
+    </el-tag>
+  </div>
 
-              <div class="item-info">
-                <span>
-                  下单时间：{{ order.order_time }}
-                </span>
+  <!-- 订单主要信息 -->
+  <div class="order-card-info">
+    <div class="order-info-block">
+      <span>订单金额</span>
+      <strong class="order-amount">
+        {{ formatAmount(order.amount) }}
+      </strong>
+    </div>
 
-                <strong>
-                  {{ formatAmount(order.amount) }}
-                </strong>
-              </div>
+    <div class="order-info-block">
+      <span>下单时间</span>
+      <strong>
+        {{ order.order_time }}
+      </strong>
+    </div>
+  </div>
 
-              <div
-                v-if="order.tracking_no"
-                class="tracking-info"
-              >
-                物流单号：{{ order.tracking_no }}
-              </div>
-            </div>
+  <!-- 物流信息 -->
+  <div
+    v-if="order.tracking_no"
+    class="tracking-info"
+  >
+    <span class="tracking-label">
+      物流单号
+    </span>
+
+    <span class="tracking-no">
+      {{ order.tracking_no }}
+    </span>
+  </div>
+
+  <!-- 暂无物流 -->
+  <div
+    v-else
+    class="tracking-info no-tracking"
+  >
+    暂无物流信息
+  </div>
+</div>
           </div>
 
           <!-- 暂无订单 -->
@@ -229,39 +256,47 @@
             v-if="tickets.length > 0"
             class="data-list"
           >
+<!--            工单卡片 -->
             <div
-              v-for="ticket in tickets"
-              :key="ticket.ticket_no"
-              class="ticket-item"
-            >
-              <div class="item-top">
-                <span class="ticket-no">
-                  {{ ticket.ticket_no }}
-                </span>
+  v-for="ticket in tickets"
+  :key="ticket.ticket_no"
+  class="ticket-item"
+>
+  <!-- 工单头部 -->
+  <div class="ticket-card-header">
+    <div>
+      <div class="ticket-no">
+        {{ ticket.ticket_no }}
+      </div>
 
-                <el-tag
-                  size="small"
-                  :type="getTicketStatusType(ticket.status)"
-                >
-                  {{ ticket.status }}
-                </el-tag>
-              </div>
+      <div class="ticket-order">
+        关联订单：{{ ticket.order_no }}
+      </div>
+    </div>
 
-              <div class="ticket-order">
-                订单号：{{ ticket.order_no }}
-              </div>
+    <el-tag
+      size="small"
+      effect="light"
+      :type="getTicketStatusType(ticket.status)"
+    >
+      {{ ticket.status }}
+    </el-tag>
+  </div>
 
-              <div class="ticket-issue">
-                {{ ticket.issue }}
-              </div>
+  <!-- 工单问题 -->
+  <div class="ticket-issue">
+    {{ ticket.issue }}
+  </div>
 
-              <div
-                v-if="ticket.created_at"
-                class="ticket-time"
-              >
-                创建时间：{{ ticket.created_at }}
-              </div>
-            </div>
+  <!-- 工单时间 -->
+  <div
+    v-if="ticket.created_at"
+    class="ticket-time"
+  >
+    <span>创建时间</span>
+    <span>{{ ticket.created_at }}</span>
+  </div>
+</div>
           </div>
 
           <!-- 暂无工单 -->
@@ -548,8 +583,10 @@ const formatAmount = (amount) => {
 }
 
 // 订单状态对应 Element Plus 标签类型
+// 订单状态对应 Element Plus 标签类型
 const getOrderStatusType = (status) => {
   const statusMap = {
+    '已签收': 'success',
     '已完成': 'success',
     '已发货': 'primary',
     '运输中': 'warning',
@@ -590,7 +627,7 @@ onMounted(async () => {
   width: 100%;
   height: 100vh;
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(420px, 1fr);
   gap: 16px;
   padding: 16px;
   background: #f5f7fa;
@@ -636,7 +673,7 @@ onMounted(async () => {
 .message-list {
   flex: 1;
   min-height: 0;
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
 }
 
@@ -818,25 +855,30 @@ onMounted(async () => {
 }
 
 .panel-header {
-  height: 68px;
+  height: 72px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 18px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #edf0f5;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #fbfcfe 100%
+  );
 }
 
 .panel-header h2 {
-  margin: 0 0 3px;
+  margin: 0 0 4px;
   font-size: 16px;
   font-weight: 600;
   color: #303133;
 }
 
 .panel-header span {
-  font-size: 12px;
-  color: #909399;
+  font-size: 11px;
+  color: #a8abb2;
 }
 
 .panel-content {
@@ -854,77 +896,143 @@ onMounted(async () => {
   gap: 10px;
 }
 
+/* ==================== 右侧业务卡片 ==================== */
+
 .order-item,
 .ticket-item {
-  padding: 13px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  transition: 0.2s;
+  padding: 16px;
+  border: 1px solid #edf0f5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
 }
 
 .order-item:hover,
 .ticket-item:hover {
-  border-color: #c6e2ff;
-  background: #f8fbff;
+  border-color: #d9e9ff;
+  box-shadow: 0 6px 18px rgba(64, 158, 255, 0.08);
+  transform: translateY(-1px);
 }
 
-.item-top {
+/* 订单 / 工单头部 */
+.order-card-header,
+.ticket-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* 订单号 */
 .order-no,
 .ticket-no {
   font-size: 12px;
+  color: #909399;
+  font-weight: 500;
+}
+
+/* 商品名称 */
+.product-name {
+  margin: 7px 0 0;
+  font-size: 15px;
+  color: #303133;
+  font-weight: 600;
+}
+
+/* 订单信息区域 */
+.order-card-info {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f2f5;
+}
+
+/* 信息块 */
+.order-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* 信息标题 */
+.order-info-block span {
+  font-size: 11px;
+  color: #a8abb2;
+}
+
+/* 信息内容 */
+.order-info-block strong {
+  font-size: 12px;
   color: #606266;
   font-weight: 500;
 }
 
-.product-name {
-  margin: 10px 0;
-  font-size: 14px;
-  color: #303133;
+/* 订单金额 */
+.order-amount {
+  font-size: 18px !important;
+  color: #f56c6c !important;
+  font-weight: 600 !important;
+}
+
+/* 物流信息 */
+.tracking-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: #f7f9fc;
+  font-size: 11px;
+}
+
+/* 物流标题 */
+.tracking-label {
+  color: #909399;
+}
+
+/* 物流单号 */
+.tracking-no {
+  color: #606266;
   font-weight: 500;
 }
 
-.item-info {
+/* 无物流信息 */
+.no-tracking {
+  justify-content: flex-start;
+  color: #a8abb2;
+}
+
+/* 工单关联订单 */
+.ticket-order {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #a8abb2;
+}
+
+/* 工单问题 */
+.ticket-issue {
+  margin-top: 15px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: #f7f9fc;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #606266;
+}
+
+/* 工单时间 */
+.ticket-time {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12px;
-  color: #909399;
-}
-
-.item-info strong {
-  color: #f56c6c;
-  font-size: 14px;
-}
-
-.tracking-info {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #909399;
-}
-
-.ticket-order {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #606266;
-}
-
-.ticket-issue {
-  margin-top: 8px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #303133;
-}
-
-.ticket-time {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #909399;
+  margin-top: 12px;
+  font-size: 11px;
+  color: #a8abb2;
 }
 
 /* ==================== 空状态 ==================== */
