@@ -32,9 +32,10 @@
               {{ message.role === 'user' ? '我' : '售后客服' }}
             </div>
 
-            <div class="message-bubble">
-              {{ message.content || '正在输入……' }}
-            </div>
+            <div
+              class="message-bubble"
+              v-html="message.content ? renderMarkdown(message.content) : '正在输入……'"
+            ></div>
           </div>
         </div>
 
@@ -318,6 +319,8 @@
 <script setup>
 import { nextTick, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import {
   chatAPI,
   orderAPI,
@@ -360,6 +363,15 @@ const scrollToBottom = async () => {
     chatContainer.value.scrollTop =
       chatContainer.value.scrollHeight
   }
+}
+
+// 将 Markdown 文本转换为安全 HTML
+const renderMarkdown = (content) => {
+  // 解析 Markdown
+  const html = marked.parse(content || '')
+
+  // 清理 HTML，防止不安全内容直接插入页面
+  return DOMPurify.sanitize(html)
 }
 
 // 加载订单
@@ -726,8 +738,60 @@ onMounted(async () => {
   color: #303133;
   font-size: 14px;
   line-height: 1.7;
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Markdown 段落 */
+.message-bubble :deep(p) {
+  margin: 0 0 8px;
+}
+
+/* 最后一个段落取消底部间距 */
+.message-bubble :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+/* Markdown 加粗 */
+.message-bubble :deep(strong) {
+  font-weight: 600;
+}
+
+/* Markdown 标题 */
+.message-bubble :deep(h1),
+.message-bubble :deep(h2),
+.message-bubble :deep(h3) {
+  margin: 8px 0;
+  font-weight: 600;
+}
+
+/* Markdown 列表 */
+.message-bubble :deep(ul),
+.message-bubble :deep(ol) {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+/* Markdown 代码 */
+.message-bubble :deep(code) {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #e9edf2;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+/* Markdown 引用 */
+.message-bubble :deep(blockquote) {
+  margin: 8px 0;
+  padding-left: 10px;
+  border-left: 3px solid #dcdfe6;
+  color: #606266;
+}
+
+/* Markdown 链接 */
+.message-bubble :deep(a) {
+  color: #409eff;
+  text-decoration: none;
 }
 
 .message-row.user .message-bubble {
