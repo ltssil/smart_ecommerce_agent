@@ -32,9 +32,6 @@ from agent.redis_service import get_redis_client
 
 load_dotenv()  # 加载.env文件
 
-load_dotenv()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI 启动时预加载项目依赖。"""
@@ -77,6 +74,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="电商售后智能客服",
     description="基于 LangChain + LangGraph + DeepSeek 的电商售后智能客服系统",
+    lifespan=lifespan,
 )
 
 # ============================================================
