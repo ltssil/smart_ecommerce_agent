@@ -244,6 +244,56 @@ def get_milvus_client() -> MilvusClient:
 
     return _milvus_client
 
+def preload_rag_resources():
+    """启动时预加载 BGE-M3 和 Milvus。"""
+
+    collection_name = os.getenv(
+        "MILVUS_COLLECTION",
+        "after_sales_policies"
+    )
+
+    # 1. 加载 BGE-M3
+    embeddings = get_embeddings()
+
+    # 2. 预热模型，避免第一次正式请求时才进行模型计算初始化
+    embeddings.embed_query("售后政策预热")
+
+    # 3. 创建 Milvus 客户端
+    client = get_milvus_client()
+
+    # 4. 检查 Collection 是否存在
+    if not client.has_collection(collection_name):
+        raise RuntimeError(
+            f"Milvus Collection 不存在：{collection_name}"
+        )
+
+    # 5. 加载 Collection
+    client.load_collection(collection_name)
+
+    # 6. 等待 Collection 真正进入 Loaded 状态
+    import time
+
+    for _ in range(30):
+        state = str(
+            client.get_load_state(collection_name)
+        )
+
+        if (
+            "Loaded" in state
+            and "NotLoad" not in state
+        ):
+            print(
+                f"Milvus Collection 已加载："
+                f"{collection_name}"
+            )
+            return
+
+        time.sleep(0.2)
+
+    raise RuntimeError(
+        f"Milvus Collection 加载超时：{collection_name}"
+    )
+
 @tool
 def search_policy(question: str) -> list[dict]:
     """
@@ -279,10 +329,6 @@ def search_policy(question: str) -> list[dict]:
 
     embeddings = get_embeddings()
     client = get_milvus_client()
-
-    # Milvus 服务重启后 Collection 可能处于 released 状态。
-    # 每次检索前执行 load，保证 Collection 可以正常搜索。
-    client.load_collection(collection_name)
 
     query_vector = embeddings.embed_query(question)
 

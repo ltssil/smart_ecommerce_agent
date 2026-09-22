@@ -25,8 +25,50 @@ from starlette.responses import StreamingResponse  # 导入流式响应
 from agent.stream_agent import assistant_query  # 导入Agent流式处理函数
 from agent.db import get_connection  # 导入数据库连接
 from agent.redis_service import get_faqs, suggest_faq # 导入redis联想函数
+from contextlib import asynccontextmanager
+from agent.agent_builder import construct_agent
+from agent.tools import preload_rag_resources
+from agent.redis_service import get_redis_client
 
 load_dotenv()  # 加载.env文件
+
+load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI 启动时预加载项目依赖。"""
+
+    print("=" * 60)
+    print("      系统启动初始化")
+    print("=" * 60)
+
+    try:
+        # 1. 提前构建 Agent
+        await construct_agent()
+        print("✅ Agent 初始化完成")
+
+        # 2. 提前加载 BGE-M3 和 Milvus
+        preload_rag_resources()
+        print("✅ BGE-M3 + Milvus 初始化完成")
+
+        # 3. 提前建立 Redis 连接
+        redis_client = get_redis_client()
+        redis_client.ping()
+        print("✅ Redis 连接正常")
+
+        print("=" * 60)
+        print("      所有核心资源初始化完成")
+        print("=" * 60)
+
+    except Exception as error:
+        print(
+            f"❌ 启动初始化失败："
+            f"{type(error).__name__}: {error}"
+        )
+        raise
+
+    yield
 
 # ============================================================
 # 1. 创建FastAPI应用
